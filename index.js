@@ -9,6 +9,7 @@ const openai = new OpenAI({ apiKey });
 const app = express();
 app.use(express.json());
 app.use(express.static("public"));
+const responseCache = {};
 
 async function getImprovedPrompt(originalPrompt, systemMessage) {
   try {
@@ -29,7 +30,10 @@ async function getImprovedPrompt(originalPrompt, systemMessage) {
 
 app.post("/improve-prompt", async (req, res) => {
   const originalPrompt = req.body.originalPrompt;
-
+  // Check cache
+  if (responseCache[originalPrompt]) {
+    return res.json(responseCache[originalPrompt]);
+  }
   if (!originalPrompt) {
     return res.status(400).send("Invalid request. Please provide a prompt.");
   }
@@ -47,11 +51,13 @@ app.post("/improve-prompt", async (req, res) => {
         getImprovedPrompt(originalPrompt, message)
       )
     );
-
+    // Cache the response
+    responseCache[originalPrompt] = { originalPrompt, improvedPrompts };
     res.json({ originalPrompt, improvedPrompts });
   } catch (error) {
-    console.error("Error in improve-prompt endpoint:", error);
-    res.status(500).send("Error improving prompt");
+    console.error("Error:", error);
+    resultDiv.innerHTML =
+      '<p class="text-danger">An error occurred while processing your request.</p>';
   }
 });
 

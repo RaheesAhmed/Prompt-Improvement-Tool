@@ -12,6 +12,11 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.59.4/codemirror.min.css"
+    />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
       body {
         background-color: #dee2e6;
@@ -25,6 +30,9 @@
       }
       #result .card {
         margin-top: 20px;
+      }
+      .cm-variable {
+        color: #e06c75; /* Variable highlight color */
       }
     </style>
   </head>
@@ -46,14 +54,15 @@
       <form id="promptForm">
         <div class="mb-3">
           <!-- <label for="promptInput" class="form-label">Enter your prompt:</label> -->
-          <textarea
-            class="form-control"
-            id="promptInput"
-            rows="3"
-            placeholder="Type your prompt here..."
-            required
-            onchange="handlePromptChange()"
-          ></textarea>
+          <!-- <textarea
+              class="form-control"
+              id="promptInput"
+              rows="3"
+              placeholder="Type your prompt here..."
+              required
+              onchange="handlePromptChange()"
+            ></textarea> -->
+          <div id="code" class="mb-3"></div>
         </div>
         <div class="d-grid">
           <button
@@ -76,29 +85,109 @@
       </form>
       <div id="result"></div>
     </div>
-
+    <!-- Modal for Variable Selection -->
+    <div
+      class="modal fade"
+      id="variableModal"
+      tabindex="-1"
+      aria-labelledby="variableModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="variableModalLabel">
+              Select Variable Type
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <select class="form-select" id="variableTypeSelect">
+              <option value="String">String</option>
+              <option value="Number">Number</option>
+              <option value="Boolean">Boolean</option>
+              <option value="Array">Array</option>
+              <option value="Object">Object</option>
+              <option value="json">JSON</option>
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+            <button type="button" class="btn btn-primary" id="saveVariableType">
+              Save changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Codemirror Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.59.4/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.59.4/mode/javascript/javascript.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      // Function to handle prompt change
-      function handlePromptChange() {
-        const promptInput = document.getElementById("promptInput");
-        const promptText = promptInput.value;
-        const variableRegex = /{{(.*?)}}/g;
-        const matches = promptText.match(variableRegex);
+      // Initialize CodeMirror editor
+      const editor = CodeMirror(document.getElementById("code"), {
+        mode: "javascript/html",
+        lineNumbers: true,
+      });
 
-        if (matches) {
-          for (const match of matches) {
-            const variableName = match.slice(2, -2);
-            const variableType = prompt(
-              `Select variable type for "${variableName}"`
-            );
-            const highlightedVariable = `<span style="background-color: yellow">${variableName} (${variableType})</span>`;
-            promptText = promptText.replace(match, highlightedVariable);
-          }
+      // Custom mode for highlighting {{variables}}
+
+      CodeMirror.defineMode("variableHighlight", function (config) {
+        return {
+          token: function (stream) {
+            if (stream.match("{{")) {
+              while (stream.next() != null && !stream.match("}}", true)) {}
+              return "variable"; // CSS class to style
+            }
+            while (stream.next() != null && !stream.match("{{", false)) {}
+            return null;
+          },
+        };
+      });
+
+      editor.setOption("mode", "variableHighlight");
+
+      // Add click event listener to CodeMirror
+      let currentVariablePos = null;
+      editor.on("mousedown", function (cm, event) {
+        const pos = cm.coordsChar({ left: event.clientX, top: event.clientY });
+        const token = cm.getTokenAt(pos);
+        if (token.string.startsWith("{{") && token.string.endsWith("}}")) {
+          currentVariablePos = pos;
+          $("#variableModal").modal("show");
         }
+      });
 
-        promptInput.value = promptText;
-      }
+      // Handle variable type selection
+      document
+        .getElementById("saveVariableType")
+        .addEventListener("click", function () {
+          const variableType =
+            document.getElementById("variableTypeSelect").value;
+          if (currentVariablePos && variableType) {
+            const token = editor.getTokenAt(currentVariablePos);
+            const newContent = editor
+              .getValue()
+              .replace(
+                token.string,
+                `${variableType}:${token.string.slice(2, -2)}`
+              );
+            editor.setValue(newContent);
+            $("#variableModal").modal("hide");
+          }
+        });
 
       // Function to handle copying text to clipboard
       function copyToClipboard(button) {
@@ -118,7 +207,7 @@
         .getElementById("promptForm")
         .addEventListener("submit", function (e) {
           e.preventDefault();
-          const promptText = document.getElementById("promptInput").value;
+          const promptText = editor.getValue();
           const spinner = document.getElementById("spinner");
           const resultDiv = document.getElementById("result");
           const submitButton = e.target.querySelector('button[type="submit"]');
@@ -126,7 +215,7 @@
           spinner.style.display = "inline-block"; // Show spinner
           submitButton.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Improving prompts Please wait...`;
 
-          fetch("/improve-prompt", {
+          fetch("http://localhost:3000/improve-prompt", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ originalPrompt: promptText, version: 1 }),
