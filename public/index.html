@@ -108,13 +108,16 @@
       </p>
       <form id="promptForm">
         <div class="mb-3">
-          <div id="code" class="mb-3 mt-5"></div>
-          <div class="character-count mt-5" id="characterCount">
+          <div id="code" class="mb-3 mt-5" ></div>
+          <div class="character-count" id="characterCount">
             Characters: 0
           </div>
           
         </div>
-        <div id="variableInputs" class="mb-3"></div>
+        <div id="variableInputs" class="mb-3">
+          <p>Variables</p>
+          <span class="badge bg-primary variable-badge" id="badge-Exam_name"></span>
+        </div>
         <div class="d-grid">
           <button
             type="submit"
@@ -134,6 +137,7 @@
           </button>
         </div>
       </form>
+
       <div class="result-card" id="originalSection">
         <h5>Original Prompt and Response</h5>
         <div class="chat-container">
@@ -176,6 +180,12 @@
         lineWrapping: true,
         autoCloseBrackets: true,
       });
+
+    
+
+
+
+
       // Update character count as user types
       editor.on("change", function () {
         const content = editor.getValue();
@@ -200,64 +210,10 @@
       });
 
       editor.setOption("mode", "variableHighlight");
-       let promptText = document.getElementById("improvedPromptContent");
-
-       
+    
 
 
-      // Update function to handle only {{variable}}
-      function generateVariableInputs() {
-        const content = editor.getValue();
-        const regex = /{{(.*?)}}/g; // Regex to match both patterns
-        let match;
-        let variables = [];
-
-        while ((match = regex.exec(content)) !== null) {
-          variables.push(match[1]); // Push the matched variable name
-        }
-
-        // Remove duplicates
-        variables = [...new Set(variables)];
-
-        // Generate HTML for input fields
-        let inputHtml = "";
-        variables.forEach((variable) => {
-          inputHtml += `
-            <div class="input-group mb-3">
-              <span class="input-group-text">${variable}</span>
-              <input type="text" class="form-control variable-input" data-variable-name="${variable}" placeholder="Enter value for ${variable}">
-            </div>
-          `;
-        });
-        // Add badges for variables above character count
-        let badgeHtml = "";
-        variables.forEach((variable) => {
-          badgeHtml += `<span class="badge bg-primary variable-badge">${variable}</span>`;
-        });
-
-        // Set HTML to variableBadges div
-        document.getElementById("variableBadges").innerHTML = badgeHtml;
-        // Set HTML to variableInputs div
-        document.getElementById("variableInputs").innerHTML = inputHtml;
-
-        // Add event listener to each input field
-        document.querySelectorAll(".variable-input").forEach((input) => {
-          input.addEventListener("input", handleVariableInputChange);
-        });
-      }
-
-      // Function to handle changes in variable input fields
-      function handleVariableInputChange(event) {
-        const variableName = event.target.getAttribute("data-variable-name");
-        const variableValue = event.target.value;
-        const content = editor.getValue();
-        const newContent = content.replace(
-          new RegExp(`{{${variableName}}}`, "g"),
-          `{{${variableValue}}}`
-        );
-        editor.setValue(newContent);
-      }
-
+  
       // Function to handle copying text to clipboard
       function copyToClipboard(button) {
         const text = button.getAttribute("data-text");
@@ -315,8 +271,59 @@
               submitButton.innerHTML = `Improve Prompt <i class="fas fa-magic me-2 p-2"></i>`;
             });
         });
+        // Function to handle badge click and prompt for variable value
 
-      generateVariableInputs();
+function handleBadgeClick(variableName) {
+  const currentValue = `{{${variableName}}}`;
+  const newValue = prompt(`Enter value for ${variableName}:`);
+  if (newValue !== null) {
+    const content = editor.getValue();
+    const updatedContent = content.replace(new RegExp(currentValue, 'g'), newValue);
+    editor.setValue(updatedContent);
+  }
+}
+
+// Function to add event listeners to badges
+function addBadgeEventListeners() {
+  document.querySelectorAll('.variable-badge').forEach(badge => {
+    badge.addEventListener('click', () => {
+      const variableName = badge.getAttribute('data-variable-name');
+      handleBadgeClick(variableName);
+    });
+  });
+}
+
+// Update function to handle only {{variable}}
+function generateVariableInputs() {
+  const content = editor.getValue();
+  const regex = /{{(.*?)}}/g; 
+  let match;
+  let variables = [];
+
+  while ((match = regex.exec(content)) !== null) {
+    variables.push(match[1]); 
+  }
+
+  // Remove duplicates
+  variables = [...new Set(variables)];
+
+  // Add badges for variables above character count
+  let badgeHtml = "";
+  variables.forEach((variable) => {
+    badgeHtml += `<span class="badge bg-primary variable-badge" data-variable-name="${variable}">${variable}</span>`;
+  });
+
+  // Set HTML to variableBadges div
+  document.getElementById("variableInputs").innerHTML = badgeHtml;
+
+  // Add event listener to each badge
+  addBadgeEventListeners();
+}
+
+
+
+// Initial call to populate variable badges on page load
+generateVariableInputs();
     </script>
   </body>
 </html>

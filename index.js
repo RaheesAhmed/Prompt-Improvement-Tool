@@ -48,6 +48,12 @@ async function getImprovedPrompt(originalPrompt, systemMessage) {
 app.post("/improve-prompt", async (req, res) => {
   const originalPrompt = req.body.originalPrompt;
   console.log("Original Prompt:", originalPrompt);
+
+  //if prompt is empty send error message to client side kindly enter a prompt first
+  if (originalPrompt == "") {
+    return res.status(400).send("Please enter a prompt.");
+  }
+
   // Check cache
   if (responseCache[originalPrompt]) {
     return res.json(responseCache[originalPrompt]);
