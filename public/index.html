@@ -17,21 +17,25 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.59.4/codemirror.min.css"
     />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
+       
+   
       body {
-        background-color: #dee2e6;
-        font-family: "Arial", sans-serif;
+        background-color: #f8f9fa; /* Softer background */
+        font-family: 'Open Sans', sans-serif; /* Modern font */
       }
       .container {
         background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        padding: 30px; /* Increased padding */
+        border-radius: 15px; /* Softer border-radius */
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        margin-bottom: 20px; /* Space between sections */
       }
       #result .card {
         margin-top: 20px;
       }
-
+      
       .CodeMirror {
         border: 1px solid #eee;
         height: auto;
@@ -53,7 +57,7 @@
         padding: 15px;
         background: #fff;
         border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
       }
       .result-card .card-body {
         padding: 10px;
@@ -89,6 +93,13 @@
       }
       .improved-container {
         display: flex; /* Flex to display improved versions side by side */
+      }
+      .badge {
+        cursor: pointer; /* Indicates clickability */
+        transition: transform 0.1s ease; /* Smooth transition for click */
+      }
+      .badge:hover {
+        transform: scale(1.05); /* Slightly enlarge on hover */
       }
     </style>
   </head>
@@ -132,7 +143,7 @@
               style="display: none"
             ></span>
 
-            Improve Prompt
+            Test Prompt
             <i class="fas fa-magic me-2 p-2"></i>
           </button>
         </div>
@@ -164,6 +175,7 @@
           </div>
         </div>
     </div>
+    
 
     <!-- Codemirror Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.59.4/codemirror.min.js"></script>
@@ -238,7 +250,7 @@
           const submitButton = e.target.querySelector('button[type="submit"]');
 
           spinner.style.display = "inline-block"; // Show spinner
-          submitButton.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Improving prompts Please wait...`;
+          submitButton.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Testing Please wait...`;
 
           fetch("http://localhost:3000/improve-prompt", {
             method: "POST",
